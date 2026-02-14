@@ -25,6 +25,7 @@ const el = {
   resetCycleBtn: document.getElementById("resetCycleBtn"),
   entriesBody: document.getElementById("entriesBody"),
   historyBody: document.getElementById("historyBody"),
+  currentBalanceMetric: document.getElementById("currentBalanceMetric"),
   avgMetric: document.getElementById("avgMetric"),
   highestSpendMetric: document.getElementById("highestSpendMetric"),
   highestBalanceMetric: document.getElementById("highestBalanceMetric"),
@@ -215,6 +216,14 @@ function updateAllTimeMaxesFromCurrentCycle() {
 
 function renderAll() {
   const metrics = getCycleMetrics(state.currentCycle);
+  const latestEntry = state.currentCycle.reduce((latest, entry) => {
+    if (!latest || entry.date > latest.date) {
+      return entry;
+    }
+    return latest;
+  }, null);
+  const latestBalance = latestEntry ? latestEntry.remaining_amount : 0;
+  el.currentBalanceMetric.textContent = formatCurrency(latestBalance);
   el.avgMetric.textContent = formatCurrency(metrics.dailyAverage);
   el.highestSpendMetric.textContent = formatCurrency(metrics.highestSpend);
   el.highestBalanceMetric.textContent = formatCurrency(metrics.highestBalance);
