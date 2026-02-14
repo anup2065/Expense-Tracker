@@ -240,7 +240,9 @@ function renderEntries() {
     return;
   }
 
-  state.currentCycle.forEach((item) => {
+  const entriesForDisplay = [...state.currentCycle].sort((a, b) => b.date.localeCompare(a.date));
+
+  entriesForDisplay.forEach((item) => {
     const tr = document.createElement("tr");
     const expClass = item.expenditure < 0 ? "negative" : "positive";
 
@@ -394,3 +396,4 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 }
+
