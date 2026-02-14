@@ -4,6 +4,7 @@ const defaultState = {
   pinHash: null,
   currentCycle: [],
   history: [],
+  currentBalance: 0,
   highestSpendEver: 0,
   highestBalanceEver: 0
 };
@@ -131,6 +132,7 @@ function handleAddEntry(event) {
     });
   }
 
+  state.currentBalance = round2(remaining);
   recalculateCycleExpenditures();
   updateAllTimeMaxesFromCurrentCycle();
   saveState();
@@ -164,6 +166,7 @@ function handleResetCycle() {
   state.history.push(cycleSummary);
   updateAllTimeMaxesFromCurrentCycle();
   state.currentCycle = [];
+  state.currentBalance = 0;
 
   saveState();
   renderAll();
@@ -216,14 +219,7 @@ function updateAllTimeMaxesFromCurrentCycle() {
 
 function renderAll() {
   const metrics = getCycleMetrics(state.currentCycle);
-  const latestEntry = state.currentCycle.reduce((latest, entry) => {
-    if (!latest || entry.date > latest.date) {
-      return entry;
-    }
-    return latest;
-  }, null);
-  const latestBalance = latestEntry ? latestEntry.remaining_amount : 0;
-  el.currentBalanceMetric.textContent = formatCurrency(latestBalance);
+  el.currentBalanceMetric.textContent = formatCurrency(state.currentBalance);
   el.avgMetric.textContent = formatCurrency(metrics.dailyAverage);
   el.highestSpendMetric.textContent = formatCurrency(metrics.highestSpend);
   el.highestBalanceMetric.textContent = formatCurrency(metrics.highestBalance);
@@ -335,6 +331,11 @@ function loadState() {
     return {
       ...defaultState,
       ...parsed,
+      currentBalance: typeof parsed.currentBalance === "number"
+        ? parsed.currentBalance
+        : (Array.isArray(parsed.currentCycle) && parsed.currentCycle.length
+          ? Number(parsed.currentCycle[parsed.currentCycle.length - 1].remaining_amount) || 0
+          : 0),
       currentCycle: Array.isArray(parsed.currentCycle) ? parsed.currentCycle : [],
       history: Array.isArray(parsed.history) ? parsed.history : []
     };
@@ -378,6 +379,17 @@ function todayISO() {
 }
 
 function registerServiceWorker() {
+  const host = window.location.hostname;
+  const isLocalhost = host === "localhost" || host === "127.0.0.1";
+  if (isLocalhost) {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+    }
+    return;
+  }
+
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
