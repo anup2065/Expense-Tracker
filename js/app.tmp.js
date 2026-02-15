@@ -134,7 +134,7 @@ function handleAddEntry(event) {
 
   state.currentBalance = round2(remaining);
   recalculateCycleExpenditures();
-  recomputeAllTimeMaxes();
+  updateAllTimeMaxesFromCurrentCycle();
   saveState();
   renderAll();
   el.remainingInput.value = "";
@@ -164,7 +164,7 @@ function handleResetCycle() {
   };
 
   state.history.push(cycleSummary);
-  recomputeAllTimeMaxes();
+  updateAllTimeMaxesFromCurrentCycle();
   state.currentCycle = [];
   state.currentBalance = 0;
 
@@ -172,23 +172,6 @@ function handleResetCycle() {
   renderAll();
 }
 
-function handleDeleteEntry(date) {
-  const shouldDelete = confirm("Are you sure?");
-  if (!shouldDelete) {
-    return;
-  }
-
-  state.currentCycle = state.currentCycle.filter((entry) => entry.date !== date);
-  recalculateCycleExpenditures();
-  state.currentBalance = state.currentCycle.length
-    ? state.currentCycle[state.currentCycle.length - 1].remaining_amount
-    : 0;
-
-  recomputeAllTimeMaxes();
-
-  saveState();
-  renderAll();
-}
 function getCycleMetrics(cycle) {
   if (!cycle.length) {
     return {
@@ -224,23 +207,14 @@ function recalculateCycleExpenditures() {
   });
 }
 
-function recomputeAllTimeMaxes() {
-  let highestSpend = 0;
-  let highestBalance = 0;
-
-  state.history.forEach((cycle) => {
-    highestSpend = Math.max(highestSpend, Number(cycle.highestSpend) || 0);
-    highestBalance = Math.max(highestBalance, Number(cycle.highestBalance) || 0);
-  });
-
-  if (state.currentCycle.length) {
-    const metrics = getCycleMetrics(state.currentCycle);
-    highestSpend = Math.max(highestSpend, metrics.highestSpend);
-    highestBalance = Math.max(highestBalance, metrics.highestBalance);
+function updateAllTimeMaxesFromCurrentCycle() {
+  if (!state.currentCycle.length) {
+    return;
   }
 
-  state.highestSpendEver = round2(highestSpend);
-  state.highestBalanceEver = round2(highestBalance);
+  const metrics = getCycleMetrics(state.currentCycle);
+  state.highestSpendEver = Math.max(state.highestSpendEver, metrics.highestSpend);
+  state.highestBalanceEver = Math.max(state.highestBalanceEver, metrics.highestBalance);
 }
 
 function renderAll() {
@@ -276,11 +250,7 @@ function renderEntries() {
       <td>${item.date}</td>
       <td>${formatCurrency(item.remaining_amount)}</td>
       <td class="${expClass}">${formatSignedCurrency(item.expenditure)}</td>
-      <td><button type="button" class="btn" data-delete-date="${item.date}">Delete</button></td>
     `;
-
-    const deleteBtn = tr.querySelector("[data-delete-date]");
-    deleteBtn.addEventListener("click", () => handleDeleteEntry(item.date));
 
     el.entriesBody.appendChild(tr);
   });
@@ -426,7 +396,6 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 }
-
 
 
 
